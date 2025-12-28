@@ -11,7 +11,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let rooms = {};
 
-// Hilfsfunktion zur Punkteberechnung auf dem Server (Sicherheit & Sync)
 function calculateScore(id, dice) {
     const counts = dice.reduce((a, v) => { a[v] = (a[v] || 0) + 1; return a; }, {});
     const sum = dice.reduce((a, b) => a + b, 0);
@@ -31,73 +30,79 @@ function calculateScore(id, dice) {
 
 io.on('connection', (socket) => {
     socket.on('join-room', ({ roomId, playerName }) => {
-        socket.join(roomId);
-        if (!rooms[roomId]) {
-            rooms[roomId] = {
+        const rId = roomId.toUpperCase();
+        socket.join(rId);
+        
+        if (!rooms[rId]) {
+            rooms[rId] = {
                 players: [],
                 gameStarted: false,
                 currentPlayerIdx: 0,
                 dice: [0, 0, 0, 0, 0],
-                rollsLeft: 3,
-                held: [false, false, false, false, false]
+                rollsLeft: 3
             };
         }
-        const room = rooms[roomId];
+        
+        const room = rooms[rId];
+        // Spieler nur hinzufügen, wenn das Spiel noch nicht läuft
         if (!room.gameStarted) {
-            room.players.push({ id: socket.id, name: playerName, scores: {}, total: 0 });
-            io.to(roomId).emit('update-players', room.players);
+            const playerExists = room.players.find(p => p.id === socket.id);
+            if (!playerExists) {
+                room.players.push({ id: socket.id, name: playerName, scores: {}, total: 0 });
+            }
+            // Broadcast an ALLE im Raum (inklusive des neuen Spielers)
+            io.to(rId).emit('update-players', room.players);
         }
     });
 
     socket.on('start-game', (roomId) => {
-        if (rooms[roomId]) {
-            rooms[roomId].gameStarted = true;
-            io.to(roomId).emit('game-started', rooms[roomId]);
+        const rId = roomId.toUpperCase();
+        if (rooms[rId] && rooms[rId].players.length > 0) {
+            rooms[rId].gameStarted = true;
+            io.to(rId).emit('game-started', rooms[rId]);
         }
     });
 
-    // Aktion: Würfeln
     socket.on('dice-rolled', ({ roomId, dice, rollsLeft }) => {
-        if (rooms[roomId]) {
-            rooms[roomId].dice = dice;
-            rooms[roomId].rollsLeft = rollsLeft;
-            io.to(roomId).emit('sync-game', rooms[roomId]);
+        const rId = roomId.toUpperCase();
+        if (rooms[rId]) {
+            rooms[rId].dice = dice;
+            rooms[rId].rollsLeft = rollsLeft;
+            io.to(rId).emit('sync-game', rooms[rId]);
         }
     });
 
-    // Aktion: Würfel halten (Nur visuell für andere, falls gewünscht - hier deaktiviert für Privatsphäre)
-    socket.on('toggle-hold', ({ roomId, held }) => {
-        if (rooms[roomId]) {
-            rooms[roomId].held = held;
-            socket.to(roomId).emit('sync-held', held);
-        }
-    });
-
-    // Aktion: Kategorie wählen (Server berechnet Punkte!)
     socket.on('select-category', ({ roomId, catId }) => {
-        const room = rooms[roomId];
+        const rId = roomId.toUpperCase();
+        const room = rooms[rId];
         if (room) {
             const player = room.players[room.currentPlayerIdx];
             const score = calculateScore(catId, room.dice);
             player.scores[catId] = score;
 
-            // Gesamtpunktzahl & Bonus
             let upper = 0;
             ["1", "2", "3", "4", "5", "6"].forEach(id => upper += (player.scores[id] || 0));
             let total = Object.values(player.scores).reduce((a, b) => a + b, 0);
             player.total = total + (upper >= 63 ? 35 : 0);
 
-            // Nächster Spieler
             room.currentPlayerIdx = (room.currentPlayerIdx + 1) % room.players.length;
             room.rollsLeft = 3;
             room.dice = [0, 0, 0, 0, 0];
-            room.held = [false, false, false, false, false];
 
-            io.to(roomId).emit('sync-game', room);
+            io.to(rId).emit('sync-game', room);
+        }
+    });
+
+    socket.on('disconnecting', () => {
+        for (const rId of socket.rooms) {
+            if (rooms[rId]) {
+                rooms[rId].players = rooms[rId].players.filter(p => p.id !== socket.id);
+                io.to(rId).emit('update-players', rooms[rId].players);
+            }
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server gestartet auf Port ${PORT}`));
+server.listen(PORT, () => console.log(`Dämonen lauschen auf Port ${PORT}`));
 
