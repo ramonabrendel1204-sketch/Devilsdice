@@ -14,10 +14,10 @@
         .die { width: 50px; height: 50px; background: #111; border: 2px solid #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--blood-red); cursor: pointer; transition: transform 0.1s; }
         .die.held { border-color: #00ff44; color: #00ff44; box-shadow: 0 0 10px rgba(0,255,68,0.3); transform: translateY(-3px); }
         .cards-slider { display: flex; overflow-x: auto; gap: 1rem; padding: 15px; scrollbar-width: none; scroll-snap-type: x mandatory; }
-        .score-card { flex: 0 0 85%; scroll-snap-align: center; background: rgba(0,0,0,0.8); border: 1px solid #222; border-radius: 12px; padding: 12px; }
+        .score-card { flex: 0 0 85%; scroll-snap-align: center; background: rgba(0,0,0,0.85); border: 1px solid #222; border-radius: 12px; padding: 12px; }
         .score-card.active-turn { border-color: var(--blood-red); box-shadow: 0 0 15px rgba(138,3,3,0.4); }
         .score-row { border-bottom: 1px solid #1a1a1a; padding: 5px; display: grid; grid-template-columns: 1fr auto; font-size: 0.85rem; }
-        .score-row.clickable:hover { background: rgba(138,3,3,0.15); cursor: pointer; }
+        .score-row.clickable:not(.filled):hover { background: rgba(138,3,3,0.15); cursor: pointer; }
         .score-row.filled { color: #555; pointer-events: none; }
         .btn-blood { background: #600; color: white; padding: 10px 20px; border-radius: 4px; font-family: 'Creepster', cursive; font-size: 1.2rem; border: 1px solid #900; }
         .btn-blood:disabled { opacity: 0.2; cursor: not-allowed; }
@@ -29,25 +29,23 @@
         <div class="max-w-md w-full bg-zinc-950 border border-red-900 p-8 rounded-lg">
             <h1 class="horror-title text-4xl text-center mb-6">DAS RITUAL</h1>
             <input type="text" id="player-name" placeholder="Dein Name" class="w-full bg-black border border-red-900 p-3 text-white mb-4">
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <button onclick="setMode('local')" class="btn-blood text-sm">LOKAL</button>
-                <button onclick="setMode('online')" class="btn-blood text-sm">ONLINE</button>
-            </div>
-            <div id="online-ui" class="hidden space-y-4">
-                <input type="text" id="room-id" placeholder="RAUM CODE" class="w-full bg-black border border-red-900 p-3 text-white uppercase">
-                <button onclick="joinOnline()" class="btn-blood w-full">BEITRETEN</button>
-                <div id="waiting-msg" class="hidden text-center text-red-700 animate-pulse">Warten auf Seelen...</div>
-                <button id="start-btn" onclick="requestStart()" class="hidden btn-blood w-full">RITUAL BEGINNEN</button>
-            </div>
-            <div id="local-ui" class="hidden">
-                <button onclick="startLocal()" class="btn-blood w-full">START</button>
+            
+            <div id="lobby-controls" class="space-y-4">
+                <input type="text" id="room-id" placeholder="RAUM CODE (z.B. HELL)" class="w-full bg-black border border-red-900 p-3 text-white uppercase">
+                <button onclick="joinOnline()" class="btn-blood w-full">RAUM BETRETEN</button>
+                
+                <div id="waiting-area" class="hidden border-t border-red-900 pt-4 mt-4">
+                    <p class="text-center text-red-600 animate-pulse mb-2 text-sm">Gefangene Seelen:</p>
+                    <div id="player-list-display" class="text-center text-gray-400 text-xs mb-4"></div>
+                    <button id="start-btn" onclick="requestStart()" class="btn-blood w-full">RITUAL STARTEN</button>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="game-ui" class="hidden max-w-lg mx-auto">
         <h1 class="horror-title text-2xl text-center my-4">THE DEVIL'S CIRCLE</h1>
-        <div id="turn-info" class="text-center text-red-600 text-xs mb-2 h-4 uppercase"></div>
+        <div id="turn-info" class="text-center text-red-600 text-[10px] mb-2 h-4 uppercase tracking-widest"></div>
         
         <div class="bg-black/80 border border-red-950 rounded-2xl p-4 mb-4">
             <div class="flex justify-center gap-2 mb-6">
@@ -61,7 +59,7 @@
                 <button id="roll-btn" class="btn-blood" onclick="roll()">WÜRFELN</button>
                 <div class="text-center">
                     <span class="text-[10px] text-gray-600 block">CHANCEN</span>
-                    <span id="rolls-left" class="text-2xl font-bold text-red-700">3</span>
+                    <span id="rolls-left-ui" class="text-2xl font-bold text-red-700">3</span>
                 </div>
             </div>
         </div>
@@ -70,7 +68,7 @@
 
     <script>
         const socket = io();
-        let mode = 'local', roomId = '', players = [], activeIdx = 0;
+        let roomId = '', players = [], activeIdx = 0;
         let dice = [0,0,0,0,0], held = [false,false,false,false,false], left = 3;
 
         const CATS = [
@@ -80,24 +78,26 @@
             {id:"ks", n:"Kl. Treppe"}, {id:"gs", n:"Gr. Treppe"}, {id:"kn", n:"DER TEUFEL"}, {id:"ch", n:"Schicksal"}
         ];
 
-        function setMode(m) {
-            mode = m;
-            document.getElementById('online-ui').classList.toggle('hidden', m !== 'online');
-            document.getElementById('local-ui').classList.toggle('hidden', m !== 'local');
-        }
-
         function joinOnline() {
-            roomId = document.getElementById('room-id').value.toUpperCase();
+            const rInput = document.getElementById('room-id').value.toUpperCase();
             const name = document.getElementById('player-name').value || "Schatten";
-            if(!roomId) return;
+            if(!rInput) return;
+            roomId = rInput;
             socket.emit('join-room', { roomId, playerName: name });
-            document.getElementById('waiting-msg').classList.remove('hidden');
-            document.getElementById('start-btn').classList.remove('hidden');
+            document.getElementById('waiting-area').classList.remove('hidden');
         }
 
-        function requestStart() { socket.emit('start-game', roomId); }
+        socket.on('update-players', p => {
+            players = p;
+            document.getElementById('player-list-display').innerText = p.map(x => x.name).join(' • ');
+            // Button nur aktivieren wenn min. 1 Spieler da ist (oder 2 für echtes Multiplayer)
+            document.getElementById('start-btn').disabled = p.length < 1;
+        });
 
-        socket.on('update-players', p => { players = p; });
+        function requestStart() {
+            socket.emit('start-game', roomId);
+        }
+
         socket.on('game-started', data => sync(data, true));
         socket.on('sync-game', data => sync(data, false));
 
@@ -117,32 +117,20 @@
             if(left <= 0) return;
             left--;
             dice = dice.map((v, i) => held[i] ? v : Math.floor(Math.random()*6)+1);
-            if(mode === 'online') {
-                socket.emit('dice-rolled', { roomId, dice, rollsLeft: left });
-            } else {
-                render();
-            }
+            socket.emit('dice-rolled', { roomId, dice, rollsLeft: left });
         }
 
         function toggleHold(i) {
-            const isMe = mode === 'local' ? true : players[activeIdx].id === socket.id;
+            const isMe = players[activeIdx] && players[activeIdx].id === socket.id;
             if(!isMe || left === 3 || left === 0) return;
             held[i] = !held[i];
             render();
         }
 
         function chooseCat(catId) {
-            if(left === 3) return; // Nicht gewürfelt
-            if(mode === 'online') {
-                socket.emit('select-category', { roomId, catId });
-            } else {
-                // Lokale Logik (verkürzt)
-                const p = players[activeIdx];
-                p.scores[catId] = 0; // Hier müsste die Kalkulation stehen
-                activeIdx = (activeIdx + 1) % players.length;
-                left = 3; dice = [0,0,0,0,0]; held = [false,false,false,false,false];
-                render();
-            }
+            if(left === 3) return;
+            socket.emit('select-category', { roomId, catId });
+            held = [false,false,false,false,false]; // Reset local held state
         }
 
         function render() {
@@ -153,8 +141,10 @@
                 card.className = `score-card ${i === activeIdx ? 'active-turn' : ''}`;
                 let rows = CATS.map(c => {
                     const s = p.scores[c.id];
-                    const click = i === activeIdx && s === undefined && left < 3 ? `onclick="chooseCat('${c.id}')"` : '';
-                    return `<div class="score-row ${s===undefined && i === activeIdx ? 'clickable' : ''} ${s!==undefined?'filled':''}" ${click}>
+                    const isMyTurn = i === activeIdx && p.id === socket.id;
+                    const canClick = isMyTurn && s === undefined && left < 3;
+                    return `<div class="score-row ${canClick ? 'clickable' : ''} ${s!==undefined?'filled':''}" 
+                                 ${canClick ? `onclick="chooseCat('${c.id}')"` : ''}>
                         <span>${c.n}</span><span class="font-bold text-red-700">${s ?? '-'}</span>
                     </div>`;
                 }).join('');
@@ -163,16 +153,22 @@
             });
 
             const current = players[activeIdx];
-            const isMe = mode === 'local' ? true : current.id === socket.id;
-            document.getElementById('turn-info').innerText = isMe ? "Du bist am Zug" : `${current.name} opfert die Würfel...`;
+            if(!current) return;
+
+            const isMe = current.id === socket.id;
+            document.getElementById('turn-info').innerText = isMe ? "Du bist am Zug" : `${current.name} ist am Zug`;
             document.getElementById('roll-btn').disabled = !isMe || left <= 0;
-            document.getElementById('rolls-left').innerText = left;
+            document.getElementById('rolls-left-ui').innerText = left;
 
             const dieEls = document.querySelectorAll('.die');
             dice.forEach((v, i) => {
                 dieEls[i].innerText = v || "?";
                 dieEls[i].classList.toggle('held', held[i]);
             });
+
+            // Auto-Scroll zum aktiven Spieler
+            const activeCard = container.children[activeIdx];
+            if(activeCard) activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
     </script>
 </body>
