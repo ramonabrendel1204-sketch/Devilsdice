@@ -44,20 +44,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Synchronisiert JEDE Aktion (Würfeln, Halten, Eintragen)
     socket.on('sync-action', ({ roomId, gameState }) => {
         if (rooms[roomId]) {
-            rooms[roomId] = { ...rooms[roomId], ...gameState };
-            // Sende an alle anderen im Raum
-            socket.to(roomId).emit('game-state-updated', rooms[roomId]);
+            // Update the server-side state
+            Object.assign(rooms[roomId], gameState);
+            // Broadcast the new state to EVERYONE in the room (including sender)
+            io.to(roomId).emit('game-state-updated', rooms[roomId]);
         }
     });
 
     socket.on('disconnect', () => {
-        // Logik für Spieler verlassen könnte hier erweitert werden
+        // Hier könnte man Logik hinzufügen, um Räume zu löschen, wenn sie leer sind
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server läuft auf Port ${PORT}`));
+server.listen(PORT, () => console.log(`Altar bereit auf Port ${PORT}`));
 
