@@ -11,42 +11,65 @@
         :root { --blood-red: #8a0303; --dark-void: #0a0a0a; --bone-white: #e3dac9; }
         body { background-color: var(--dark-void); color: var(--bone-white); font-family: 'Special Elite', cursive; background-image: radial-gradient(circle, #1a0505 0%, #0a0a0a 100%); min-height: 100vh; touch-action: pan-y; overflow-x: hidden; }
         .horror-title { font-family: 'Nosifer', cursive; color: var(--blood-red); text-shadow: 0 0 15px rgba(138,3,3,0.8); }
-        .die { width: 55px; height: 55px; background: #111; border: 2px solid #444; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--blood-red); box-shadow: 0 0 5px rgba(138,3,3,0.2); cursor: pointer; transition: all 0.3s; text-shadow: 0 0 8px var(--blood-red); }
+        
+        .die { 
+            width: 55px; height: 55px; background: #111; border: 2px solid #444; border-radius: 10px; 
+            display: flex; align-items: center; justify-content: center; font-size: 2rem; 
+            color: var(--blood-red); box-shadow: 0 0 5px rgba(138,3,3,0.2); 
+            cursor: pointer; transition: all 0.3s; text-shadow: 0 0 8px var(--blood-red); 
+        }
         .die.held { border-color: #00ff44; color: #00ff44; box-shadow: 0 0 20px rgba(0,255,68,0.5); transform: scale(1.1) translateY(-5px); }
         .die.rolling { animation: demonic-roll 0.2s infinite; border-color: #ff0000; box-shadow: 0 0 25px #ff0000; }
+        
         @keyframes demonic-roll { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(5deg) scale(1.1); } }
+        
         .cards-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; padding: 20px 10px; scrollbar-width: none; }
-        .score-card { flex: 0 0 85%; scroll-snap-align: center; background: rgba(5,5,5,0.9); border: 1px solid #333; border-radius: 15px; padding: 15px; }
-        .score-card.active-turn { border-color: var(--blood-red); box-shadow: 0 0 20px rgba(138,3,3,0.4); }
+        .score-card { flex: 0 0 85%; scroll-snap-align: center; background: rgba(5,5,5,0.9); border: 2px solid #333; border-radius: 15px; padding: 15px; transition: border-color 0.5s; }
+        .score-card.active-turn { border-color: var(--blood-red); box-shadow: 0 0 25px rgba(138,3,3,0.5); }
+        
         .score-row { border-bottom: 1px solid #222; padding: 8px; display: grid; grid-template-columns: 1fr auto; font-size: 0.85rem; }
-        .score-row.clickable:hover { background: rgba(138,3,3,0.2); cursor: pointer; }
-        .btn-blood { background: linear-gradient(180deg, #8a0303 0%, #4a0000 100%); color: white; padding: 12px 24px; border-radius: 8px; font-family: 'Creepster', cursive; font-size: 1.4rem; border: 1px solid #a00; }
-        .btn-blood:disabled { opacity: 0.2; filter: grayscale(1); }
+        .score-row.clickable:not(.filled):hover { background: rgba(138,3,3,0.2); cursor: pointer; }
+        .score-row.filled { color: #444; cursor: default; }
+        
+        .btn-blood { background: linear-gradient(180deg, #8a0303 0%, #4a0000 100%); color: white; padding: 12px 24px; border-radius: 8px; font-family: 'Creepster', cursive; font-size: 1.4rem; border: 1px solid #a00; transition: all 0.3s; }
+        .btn-blood:disabled { opacity: 0.2; filter: grayscale(1); cursor: not-allowed; }
+
+        .turn-indicator {
+            background: rgba(138, 3, 3, 0.2);
+            border: 1px solid var(--blood-red);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body class="p-2 select-none">
 
-    <!-- Lobby/Setup -->
+    <!-- Lobby / Setup -->
     <div id="setup-screen" class="fixed inset-0 flex items-center justify-center p-4 z-[100] bg-black">
         <div class="max-w-md w-full bg-zinc-950 border-2 border-red-900 p-8 rounded-2xl">
-            <h1 class="horror-title text-4xl text-center mb-6">DER ALTRAR</h1>
+            <h1 class="horror-title text-4xl text-center mb-6">DER ALTAR</h1>
             <div class="space-y-4">
                 <input type="text" id="player-name" placeholder="Dein Name" class="w-full bg-black border border-red-900 p-3 text-white">
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="initMode('local')" class="btn-blood text-sm">LOKAL</button>
                     <button onclick="initMode('online')" class="btn-blood text-sm">ONLINE</button>
                 </div>
+                
                 <div id="online-options" class="hidden space-y-4 pt-4 border-t border-red-900/30">
                     <input type="text" id="room-id" placeholder="Raum-ID (z.B. HOELLE666)" class="w-full bg-black border border-red-900 p-3 text-white">
                     <button onclick="joinOnline()" class="btn-blood w-full">RAUM BETRETEN</button>
-                    <div id="waiting-area" class="hidden text-center text-red-500 animate-pulse">
-                        Warten auf andere Seelen... <br>
-                        <span id="player-list" class="text-xs text-gray-500"></span>
-                        <button onclick="startOnlineGame()" class="btn-blood w-full mt-4">RITUAL STARTEN</button>
+                    <div id="waiting-area" class="hidden text-center text-red-500">
+                        <p class="animate-pulse mb-2">Warten auf andere Seelen...</p>
+                        <div id="player-list" class="text-xs text-gray-500 mb-4"></div>
+                        <button onclick="startOnlineGame()" class="btn-blood w-full">RITUAL STARTEN</button>
                     </div>
                 </div>
+
                 <div id="local-options" class="hidden space-y-4 pt-4 border-t border-red-900/30 text-center">
-                    <p class="text-xs text-gray-500">Wie viele Bots sollen teilnehmen?</p>
+                    <p class="text-xs text-gray-500 mb-2">Wie viele Bots sollen teilnehmen?</p>
                     <select id="bot-count" class="w-full bg-black border border-red-900 p-2 text-white">
                         <option value="1">1 Bot</option>
                         <option value="2">2 Bots</option>
@@ -61,8 +84,12 @@
 
     <!-- Game UI -->
     <div id="game-ui" class="hidden max-w-4xl mx-auto">
-        <header class="text-center mb-4"><h1 class="horror-title text-3xl">THE DEVIL'S CIRCLE</h1></header>
-        <div class="bg-black/60 border border-red-900/30 rounded-3xl p-6 mb-6">
+        <header class="text-center mb-2">
+            <h1 class="horror-title text-3xl">THE DEVIL'S CIRCLE</h1>
+            <div id="current-turn-msg" class="turn-indicator text-red-500 mt-2">Bereite dich vor...</div>
+        </header>
+
+        <div class="bg-black/60 border border-red-900/30 rounded-3xl p-6 mb-4">
             <div id="dice-container" class="flex justify-center gap-3 py-6">
                 <div class="die" onclick="handleDieClick(0)">?</div>
                 <div class="die" onclick="handleDieClick(1)">?</div>
@@ -72,12 +99,16 @@
             </div>
             <div class="flex flex-col items-center gap-4">
                 <div id="message-box" class="italic text-gray-500 h-6">Wähle dein Schicksal.</div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-6">
                     <button id="roll-btn" class="btn-blood" onclick="handleRoll()">WÜRFELN</button>
-                    <div class="text-2xl font-black bg-black px-4 py-1 border border-red-900 rounded text-red-600" id="rolls-left">3</div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] uppercase text-red-800">Versuche</span>
+                        <div class="text-2xl font-black bg-black px-4 py-1 border border-red-900 rounded text-red-600" id="rolls-left">3</div>
+                    </div>
                 </div>
             </div>
         </div>
+        
         <div id="cards-slider" class="cards-slider"></div>
     </div>
 
@@ -104,9 +135,9 @@
         }
 
         function joinOnline() {
-            const name = document.getElementById('player-name').value;
+            const name = document.getElementById('player-name').value || "Unbekannt";
             roomId = document.getElementById('room-id').value;
-            if (!name || !roomId) return;
+            if (!roomId) return;
             socket.emit('join-room', { roomId, playerName: name });
             document.getElementById('waiting-area').classList.remove('hidden');
         }
@@ -120,9 +151,11 @@
 
         socket.on('game-started', (room) => {
             players = room.players;
+            currentPlayerIdx = room.currentPlayerIdx;
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('game-ui').classList.remove('hidden');
             renderCards();
+            updateTurnUI();
         });
 
         socket.on('game-state-updated', (room) => {
@@ -130,16 +163,20 @@
             currentPlayerIdx = room.currentPlayerIdx;
             renderCards();
             updateTurnUI();
+            
+            // Zurücksetzen der Würfel für den neuen Spieler
+            resetDiceUI();
         });
 
         function startLocalGame() {
             const name = document.getElementById('player-name').value || "Sterblicher";
             const bots = parseInt(document.getElementById('bot-count').value);
-            players = [{ name, isBot: false, scores: {}, total: 0 }];
-            for(let i=0; i<bots; i++) players.push({ name: "Dämon "+(i+1), isBot: true, scores: {}, total: 0 });
+            players = [{ id: 'local-player', name, isBot: false, scores: {}, total: 0 }];
+            for(let i=0; i<bots; i++) players.push({ id: 'bot-'+i, name: "Dämon "+(i+1), isBot: true, scores: {}, total: 0 });
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('game-ui').classList.remove('hidden');
             renderCards();
+            updateTurnUI();
         }
 
         function renderCards() {
@@ -147,27 +184,84 @@
             container.innerHTML = '';
             players.forEach((p, i) => {
                 const card = document.createElement('div');
+                card.id = `card-${i}`;
                 card.className = `score-card ${i === currentPlayerIdx ? 'active-turn' : ''}`;
-                let rows = CATEGORIES.map(c => `
-                    <div class="score-row ${!p.isBot && i === currentPlayerIdx ? 'clickable' : ''}" onclick="selectCat('${c.id}', ${i})">
-                        <span>${c.name}</span><span class="font-bold text-red-700">${p.scores[c.id] ?? '-'}</span>
+                
+                let rows = CATEGORIES.map(c => {
+                    const val = p.scores[c.id];
+                    const isFilled = val !== undefined;
+                    return `
+                        <div class="score-row ${!p.isBot && i === currentPlayerIdx && !isFilled ? 'clickable' : ''} ${isFilled ? 'filled' : ''}" 
+                             onclick="selectCat('${c.id}', ${i})">
+                            <span>${c.name}</span>
+                            <span class="font-bold ${isFilled ? 'text-gray-600' : 'text-red-700'}">${isFilled ? val : '-'}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                card.innerHTML = `
+                    <div class="flex justify-between border-b border-red-900 pb-1 mb-2">
+                        <b class="${p.isBot ? 'text-gray-500' : 'text-red-600'}">${p.name}</b>
+                        <b class="text-xl text-red-600">${p.total}</b>
                     </div>
-                `).join('');
-                card.innerHTML = `<div class="flex justify-between border-b border-red-900 pb-1 mb-2"><b>${p.name}</b><b class="text-xl">${p.total}</b></div>${rows}`;
+                    <div class="rows-container">${rows}</div>
+                `;
                 container.appendChild(card);
             });
+
+            // Fokus auf aktiven Spieler
+            const activeCard = document.getElementById(`card-${currentPlayerIdx}`);
+            if (activeCard) {
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        function updateTurnUI() {
+            const activePlayer = players[currentPlayerIdx];
+            const msgEl = document.getElementById('current-turn-msg');
+            const rollBtn = document.getElementById('roll-btn');
+
+            let isMyTurn = false;
+            if (gameMode === 'local') {
+                isMyTurn = !activePlayer.isBot;
+            } else {
+                isMyTurn = activePlayer.id === socket.id;
+            }
+
+            msgEl.innerText = isMyTurn ? "DEIN ZUG - OPFERE DIE WÜRFEL" : `${activePlayer.name.toUpperCase()} IST AM ZUG...`;
+            msgEl.classList.toggle('animate-pulse', !isMyTurn);
+            
+            rollBtn.disabled = !isMyTurn || rollsLeft <= 0;
+            
+            if (activePlayer.isBot && gameMode === 'local') {
+                setTimeout(botTurn, 1500);
+            }
         }
 
         async function handleRoll() {
-            if (rollsLeft <= 0 || isRolling || players[currentPlayerIdx].isBot) return;
-            if (gameMode === 'online' && players[currentPlayerIdx].id !== socket.id) return;
+            const activePlayer = players[currentPlayerIdx];
+            if (rollsLeft <= 0 || isRolling) return;
             
+            // Sicherheitscheck Online
+            if (gameMode === 'online' && activePlayer.id !== socket.id) return;
+            // Sicherheitscheck Local
+            if (gameMode === 'local' && activePlayer.isBot) return;
+
             isRolling = true;
+            document.getElementById('roll-btn').disabled = true;
             rollsLeft--;
             document.getElementById('rolls-left').innerText = rollsLeft;
+
             const els = document.querySelectorAll('.die');
-            els.forEach((e, i) => !held[i] && e.classList.add('rolling'));
-            await new Promise(r => setTimeout(r, 600));
+            els.forEach((e, i) => {
+                if (!held[i]) {
+                    e.classList.add('rolling');
+                    e.innerText = "?";
+                }
+            });
+
+            await new Promise(r => setTimeout(r, 700));
+
             els.forEach((e, i) => {
                 if (!held[i]) {
                     dice[i] = Math.floor(Math.random()*6)+1;
@@ -175,54 +269,92 @@
                     e.classList.remove('rolling');
                 }
             });
+
             isRolling = false;
+            updateTurnUI();
         }
 
         function handleDieClick(i) {
-            if (rollsLeft === 3 || isRolling || players[currentPlayerIdx].isBot) return;
+            const activePlayer = players[currentPlayerIdx];
+            if (rollsLeft === 3 || isRolling) return;
+            if (gameMode === 'online' && activePlayer.id !== socket.id) return;
+            if (gameMode === 'local' && activePlayer.isBot) return;
+
             held[i] = !held[i];
             document.querySelectorAll('.die')[i].classList.toggle('held', held[i]);
         }
 
-        function selectCat(id, pIdx) {
-            if (pIdx !== currentPlayerIdx || rollsLeft === 3 || players[pIdx].scores[id] !== undefined) return;
-            const score = calcScore(id, dice);
-            players[pIdx].scores[id] = score;
-            calcTotal(pIdx);
+        function selectCat(catId, pIdx) {
+            const activePlayer = players[currentPlayerIdx];
+            if (pIdx !== currentPlayerIdx || rollsLeft === 3 || isRolling) return;
+            if (players[pIdx].scores[catId] !== undefined) return;
+            
+            // Check Online Turn
+            if (gameMode === 'online' && activePlayer.id !== socket.id) return;
+
+            const score = calcScore(catId, dice);
+            players[pIdx].scores[catId] = score;
+            
+            // Gesamtpunktzahl berechnen
+            let total = 0;
+            let upper = 0;
+            ["1","2","3","4","5","6"].forEach(id => upper += (players[pIdx].scores[id] || 0));
+            if (upper >= 63) total += 35;
+            Object.values(players[pIdx].scores).forEach(s => total += s);
+            players[pIdx].total = total;
+
             nextTurn();
         }
 
         function calcScore(id, d) {
             const counts = d.reduce((a,v)=>{a[v]=(a[v]||0)+1; return a;}, {});
             const sum = d.reduce((a,b)=>a+b, 0);
-            if (id === "kn") return Object.values(counts).some(v=>v>=5) ? 50 : 0;
-            if (id === "ch") return sum;
-            if (parseInt(id)) return (counts[id] || 0) * parseInt(id);
-            return sum; // Vereinfacht für Beispiel
-        }
+            const vals = Object.values(counts);
+            const unique = [...new Set(d)].sort();
 
-        function calcTotal(pIdx) {
-            const p = players[pIdx];
-            p.total = Object.values(p.scores).reduce((a,b)=>a+b, 0);
+            if (parseInt(id)) return (counts[id] || 0) * parseInt(id);
+            if (id === "3k") return vals.some(v => v >= 3) ? sum : 0;
+            if (id === "4k") return vals.some(v => v >= 4) ? sum : 0;
+            if (id === "fh") return (vals.includes(2) && vals.includes(3)) || vals.includes(5) ? 25 : 0;
+            if (id === "ks") return /1234|2345|3456/.test(unique.join('')) ? 30 : 0;
+            if (id === "gs") return unique.length === 5 && (unique[4]-unique[0] === 4) ? 40 : 0;
+            if (id === "kn") return vals.some(v => v >= 5) ? 50 : 0;
+            if (id === "ch") return sum;
+            return 0;
         }
 
         function nextTurn() {
             currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
-            rollsLeft = 3; held = [false,false,false,false,false]; dice = [0,0,0,0,0];
-            document.getElementById('rolls-left').innerText = 3;
-            document.querySelectorAll('.die').forEach(d => { d.innerText = "?"; d.classList.remove('held'); });
-            renderCards();
+            resetDiceUI();
+            
             if (gameMode === 'online') {
                 socket.emit('sync-game-state', { roomId, gameState: { players, currentPlayerIdx, round: 1 } });
+            } else {
+                renderCards();
+                updateTurnUI();
             }
-            if (players[currentPlayerIdx].isBot) botTurn();
+        }
+
+        function resetDiceUI() {
+            rollsLeft = 3; 
+            held = [false,false,false,false,false]; 
+            dice = [0,0,0,0,0];
+            document.getElementById('rolls-left').innerText = 3;
+            document.querySelectorAll('.die').forEach(d => { 
+                d.innerText = "?"; 
+                d.classList.remove('held'); 
+            });
         }
 
         async function botTurn() {
+            // Simpler Bot
+            await handleRoll(); // 1. Wurf
             await new Promise(r => setTimeout(r, 1000));
-            await handleRoll(); // Bot rollt 1x
-            const cat = CATEGORIES.find(c => players[currentPlayerIdx].scores[c.id] === undefined);
-            selectCat(cat.id, currentPlayerIdx);
+            
+            // Suche erste freie Kategorie
+            const p = players[currentPlayerIdx];
+            const cat = CATEGORIES.find(c => p.scores[c.id] === undefined);
+            if (cat) selectCat(cat.id, currentPlayerIdx);
         }
     </script>
 </body>
