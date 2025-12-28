@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Devil's Circle - Online Fix</title>
+    <title>The Devil's Circle - Final Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Nosifer&family=Special+Elite&display=swap" rel="stylesheet">
@@ -11,102 +11,107 @@
         :root { --blood-red: #8a0303; --dark-void: #0a0a0a; --bone-white: #e3dac9; }
         body { background-color: var(--dark-void); color: var(--bone-white); font-family: 'Special Elite', cursive; background-image: radial-gradient(circle, #1a0505 0%, #0a0a0a 100%); min-height: 100vh; overflow-x: hidden; }
         .horror-title { font-family: 'Nosifer', cursive; color: var(--blood-red); text-shadow: 0 0 15px rgba(138,3,3,0.8); }
-        .die { width: 55px; height: 55px; background: #111; border: 2px solid #444; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--blood-red); cursor: pointer; transition: all 0.2s; text-shadow: 0 0 8px var(--blood-red); }
-        .die.held { border-color: #00ff44; color: #00ff44; box-shadow: 0 0 15px rgba(0,255,68,0.5); transform: translateY(-3px); }
-        .die.rolling { animation: shake 0.2s infinite; border-color: #ff0000; }
-        @keyframes shake { 0% { transform: rotate(0); } 50% { transform: rotate(5deg); } 100% { transform: rotate(-5deg); } }
-        .cards-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; padding: 20px; scrollbar-width: none; }
-        .score-card { flex: 0 0 85%; scroll-snap-align: center; background: rgba(5,5,5,0.95); border: 2px solid #333; border-radius: 15px; padding: 15px; }
-        .score-card.active-turn { border-color: var(--blood-red); box-shadow: 0 0 20px rgba(138,3,3,0.4); }
-        .score-row { border-bottom: 1px solid #222; padding: 8px; display: grid; grid-template-columns: 1fr auto; font-size: 0.9rem; }
+        .die { width: 50px; height: 50px; background: #111; border: 2px solid #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--blood-red); cursor: pointer; transition: all 0.2s; text-shadow: 0 0 8px var(--blood-red); }
+        .die.held { border-color: #00ff44; color: #00ff44; box-shadow: 0 0 15px rgba(0,255,68,0.5); transform: translateY(-5px); }
+        .die.rolling { animation: demonic-shake 0.15s infinite; border-color: #ff0000; color: #ff0000; }
+        @keyframes demonic-shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 50% { transform: translate(-1px, -1px) rotate(5deg); } 100% { transform: translate(1px, -1px) rotate(-5deg); } }
+        .cards-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; padding: 15px; scrollbar-width: none; }
+        .score-card { flex: 0 0 85%; scroll-snap-align: center; background: rgba(5,5,5,0.95); border: 2px solid #333; border-radius: 12px; padding: 12px; transition: border-color 0.4s; }
+        .score-card.active-turn { border-color: var(--blood-red); box-shadow: 0 0 20px rgba(138,3,3,0.5); }
+        .score-row { border-bottom: 1px solid #222; padding: 6px; display: grid; grid-template-columns: 1fr auto; font-size: 0.85rem; }
         .score-row.clickable:not(.filled):hover { background: rgba(138,3,3,0.2); cursor: pointer; }
-        .score-row.filled { color: #444; }
-        .btn-blood { background: linear-gradient(180deg, #8a0303 0%, #4a0000 100%); color: white; padding: 12px 24px; border-radius: 8px; font-family: 'Creepster', cursive; font-size: 1.5rem; border: 1px solid #a00; }
-        .btn-blood:disabled { opacity: 0.2; cursor: not-allowed; }
+        .score-row.filled { color: #555; }
+        .btn-blood { background: linear-gradient(180deg, #8a0303 0%, #4a0000 100%); color: white; padding: 10px 20px; border-radius: 6px; font-family: 'Creepster', cursive; font-size: 1.4rem; border: 1px solid #a00; }
+        .btn-blood:disabled { opacity: 0.1; cursor: not-allowed; filter: grayscale(1); }
     </style>
 </head>
-<body class="p-2">
+<body class="p-2 select-none">
 
+    <!-- Screen: Setup -->
     <div id="setup-screen" class="fixed inset-0 flex items-center justify-center p-4 z-[100] bg-black">
         <div class="max-w-md w-full bg-zinc-950 border-2 border-red-900 p-8 rounded-2xl shadow-2xl">
-            <h1 class="horror-title text-4xl text-center mb-6">DER ALTAR</h1>
+            <h1 class="horror-title text-3xl text-center mb-6">DAS RITUAL</h1>
             <div class="space-y-4">
-                <input type="text" id="player-name" placeholder="Dein Name" class="w-full bg-black border border-red-900 p-3 text-white">
+                <input type="text" id="player-name" placeholder="Dein Name" class="w-full bg-black border border-red-900 p-3 text-white focus:outline-none focus:border-red-500">
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="initMode('local')" class="btn-blood text-sm">LOKAL</button>
-                    <button onclick="initMode('online')" class="btn-blood text-sm">ONLINE</button>
+                    <button onclick="setMode('local')" class="btn-blood text-sm">LOKAL</button>
+                    <button onclick="setMode('online')" class="btn-blood text-sm">ONLINE</button>
                 </div>
-                <div id="online-options" class="hidden space-y-4 pt-4 border-t border-red-900/30">
-                    <input type="text" id="room-id" placeholder="Raum-ID (z.B. HOELLE666)" class="w-full bg-black border border-red-900 p-3 text-white">
-                    <button onclick="joinOnline()" class="btn-blood w-full">RAUM BETRETEN</button>
-                    <div id="waiting-area" class="hidden text-center text-red-500">
-                        <p class="animate-pulse mb-2">Warten auf andere Seelen...</p>
+                
+                <div id="online-ui" class="hidden space-y-4 pt-4 border-t border-red-900/30">
+                    <input type="text" id="room-id" placeholder="Raum-ID" class="w-full bg-black border border-red-900 p-3 text-white uppercase">
+                    <button onclick="joinOnline()" class="btn-blood w-full">RAUM BEZIEHEN</button>
+                    <div id="waiting-room" class="hidden text-center text-red-600">
+                        <p class="animate-pulse mb-2">Andere Seelen sammeln sich...</p>
                         <div id="player-list" class="text-xs text-gray-500 mb-4"></div>
-                        <button onclick="startOnlineGame()" class="btn-blood w-full">RITUAL STARTEN</button>
+                        <button onclick="requestStart()" class="btn-blood w-full">STARTEN</button>
                     </div>
                 </div>
-                <div id="local-options" class="hidden space-y-4 pt-4 border-t border-red-900/30">
+
+                <div id="local-ui" class="hidden space-y-4 pt-4 border-t border-red-900/30">
+                    <label class="text-xs text-red-900 uppercase">Bots hinzufügen:</label>
                     <select id="bot-count" class="w-full bg-black border border-red-900 p-2 text-white">
-                        <option value="1">1 Bot</option><option value="2">2 Bots</option><option value="3">3 Bots</option>
+                        <option value="1">1 Dämon</option><option value="2">2 Dämonen</option><option value="3">3 Dämonen</option>
                     </select>
-                    <button onclick="startLocalGame()" class="btn-blood w-full">LOKAL STARTEN</button>
+                    <button onclick="startLocal()" class="btn-blood w-full">START</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="game-ui" class="hidden max-w-4xl mx-auto">
+    <!-- Screen: Game -->
+    <div id="game-screen" class="hidden max-w-4xl mx-auto">
         <header class="text-center mb-4">
             <h1 class="horror-title text-3xl">THE DEVIL'S CIRCLE</h1>
-            <div id="status-msg" class="text-red-600 text-sm mt-2 font-bold uppercase">Warten...</div>
+            <div id="turn-banner" class="text-red-700 font-bold uppercase text-xs tracking-tighter mt-1">Initialisiere...</div>
         </header>
 
-        <div class="bg-black/60 border border-red-900/30 rounded-3xl p-6 mb-4 shadow-xl">
-            <div id="dice-container" class="flex justify-center gap-3 py-4">
-                <div class="die" onclick="handleDieClick(0)">?</div>
-                <div class="die" onclick="handleDieClick(1)">?</div>
-                <div class="die" onclick="handleDieClick(2)">?</div>
-                <div class="die" onclick="handleDieClick(3)">?</div>
-                <div class="die" onclick="handleDieClick(4)">?</div>
+        <div class="bg-black/80 border border-red-900/40 rounded-3xl p-6 mb-4 relative">
+            <div id="dice-row" class="flex justify-center gap-2 py-4">
+                <div class="die" onclick="toggleHold(0)">?</div>
+                <div class="die" onclick="toggleHold(1)">?</div>
+                <div class="die" onclick="toggleHold(2)">?</div>
+                <div class="die" onclick="toggleHold(3)">?</div>
+                <div class="die" onclick="toggleHold(4)">?</div>
             </div>
-            <div class="flex flex-col items-center gap-4">
-                <div class="flex items-center gap-6">
-                    <button id="roll-btn" class="btn-blood" onclick="handleRoll()">WÜRFELN</button>
-                    <div class="text-center">
-                        <span class="text-[10px] block text-red-900">VERSUCHE</span>
-                        <div class="text-2xl font-black bg-black px-4 py-1 border border-red-900 rounded text-red-600" id="rolls-left-display">3</div>
-                    </div>
+            
+            <div class="flex justify-center items-center gap-8">
+                <button id="roll-action" class="btn-blood" onclick="doRoll()">WÜRFELN</button>
+                <div class="text-center">
+                    <div class="text-[10px] text-red-900">CHANCEN</div>
+                    <div id="rolls-left-ui" class="text-3xl font-black text-red-600 bg-black border border-red-900 px-4 rounded">3</div>
                 </div>
             </div>
         </div>
-        <div id="cards-slider" class="cards-slider"></div>
+
+        <div id="cards-container" class="cards-slider"></div>
     </div>
 
     <script>
         const socket = io();
-        let gameMode = 'local', roomId = '', players = [], currentPlayerIdx = 0;
-        let dice = [0,0,0,0,0], held = [false,false,false,false,false], rollsLeft = 3;
-        let isRolling = false;
+        let mode = 'local', currentRoom = '', players = [], activeIdx = 0;
+        let dice = [0,0,0,0,0], held = [false,false,false,false,false], left = 3;
+        let rolling = false;
 
-        const CATEGORIES = [
-            {id:"1", name:"Asche (1er)"}, {id:"2", name:"Knochen (2er)"}, {id:"3", name:"Tränen (3er)"},
-            {id:"4", name:"Blut (4er)"}, {id:"5", name:"Seelen (5er)"}, {id:"6", name:"Sünden (6er)"},
-            {id:"3k", name:"Dreier-Schrei"}, {id:"4k", name:"Vierer-Qual"}, {id:"fh", name:"Hexenzirkel"},
-            {id:"ks", name:"Kl. Treppe"}, {id:"gs", name:"Gr. Treppe"}, {id:"kn", name:"DER TEUFEL"}, {id:"ch", name:"Schicksal"}
+        const CATS = [
+            {id:"1", n:"Asche (1er)"}, {id:"2", n:"Knochen (2er)"}, {id:"3", n:"Tränen (3er)"},
+            {id:"4", n:"Blut (4er)"}, {id:"5", n:"Seelen (5er)"}, {id:"6", n:"Sünden (6er)"},
+            {id:"3k", n:"Dreier-Schrei"}, {id:"4k", n:"Vierer-Qual"}, {id:"fh", n:"Hexenzirkel"},
+            {id:"ks", n:"Kl. Treppe"}, {id:"gs", n:"Gr. Treppe"}, {id:"kn", n:"DER TEUFEL"}, {id:"ch", n:"Schicksal"}
         ];
 
-        function initMode(m) {
-            gameMode = m;
-            document.getElementById('online-options').classList.toggle('hidden', m !== 'online');
-            document.getElementById('local-options').classList.toggle('hidden', m !== 'local');
+        function setMode(m) {
+            mode = m;
+            document.getElementById('online-ui').classList.toggle('hidden', m !== 'online');
+            document.getElementById('local-ui').classList.toggle('hidden', m !== 'local');
         }
 
         function joinOnline() {
-            const name = document.getElementById('player-name').value || "Seele";
-            roomId = document.getElementById('room-id').value;
-            if (!roomId) return;
-            socket.emit('join-room', { roomId, playerName: name });
-            document.getElementById('waiting-area').classList.remove('hidden');
+            const name = document.getElementById('player-name').value || "Schatten";
+            currentRoom = document.getElementById('room-id').value.toUpperCase();
+            if(!currentRoom) return;
+            socket.emit('join-room', { roomId: currentRoom, playerName: name });
+            document.getElementById('waiting-room').classList.remove('hidden');
         }
 
         socket.on('update-players', p => {
@@ -114,149 +119,151 @@
             document.getElementById('player-list').innerText = p.map(x => x.name).join(', ');
         });
 
-        function startOnlineGame() { socket.emit('start-game', roomId); }
+        function requestStart() { socket.emit('start-game', currentRoom); }
 
-        socket.on('game-started', data => {
-            updateLocalState(data);
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('game-ui').classList.remove('hidden');
-            refreshUI();
-        });
+        socket.on('game-started', data => syncLocal(data, true));
+        socket.on('game-state-updated', data => syncLocal(data, false));
 
-        socket.on('game-state-updated', data => {
-            updateLocalState(data);
-            refreshUI();
-        });
-
-        function updateLocalState(data) {
+        function syncLocal(data, firstStart) {
             players = data.players;
-            currentPlayerIdx = data.currentPlayerIdx;
-            dice = data.dice || [0,0,0,0,0];
-            rollsLeft = data.rollsLeft !== undefined ? data.rollsLeft : 3;
-            held = data.held || [false,false,false,false,false];
+            activeIdx = data.currentPlayerIdx;
+            dice = data.dice;
+            left = data.rollsLeft;
+            held = data.held;
+            if(firstStart) {
+                document.getElementById('setup-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+            }
+            render();
         }
 
-        function startLocalGame() {
-            const name = document.getElementById('player-name').value || "Spieler";
+        function startLocal() {
+            const n = document.getElementById('player-name').value || "Sterblicher";
             const bc = parseInt(document.getElementById('bot-count').value);
-            players = [{ id: 'local', name, scores: {}, total: 0 }];
-            for(let i=0; i<bc; i++) players.push({ id: 'bot'+i, name: "Bot "+(i+1), isBot: true, scores: {}, total: 0 });
+            players = [{ id: 'me', name: n, scores: {}, total: 0 }];
+            for(let i=0; i<bc; i++) players.push({ id: 'bot'+i, name: "Dämon "+(i+1), isBot: true, scores: {}, total: 0 });
             document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('game-ui').classList.remove('hidden');
-            refreshUI();
+            document.getElementById('game-screen').classList.remove('hidden');
+            render();
         }
 
-        function refreshUI() {
-            const container = document.getElementById('cards-slider');
+        function render() {
+            const container = document.getElementById('cards-container');
             container.innerHTML = '';
             players.forEach((p, i) => {
                 const card = document.createElement('div');
                 card.id = `card-${i}`;
-                card.className = `score-card ${i === currentPlayerIdx ? 'active-turn' : ''}`;
-                let rows = CATEGORIES.map(c => {
+                card.className = `score-card ${i === activeIdx ? 'active-turn' : ''}`;
+                let rows = CATS.map(c => {
                     const s = p.scores[c.id];
-                    return `<div class="score-row ${i===currentPlayerIdx && !p.isBot && s===undefined ? 'clickable' : ''} ${s!==undefined?'filled':''}" onclick="selectCat('${c.id}', ${i})">
-                        <span>${c.name}</span><span class="font-bold text-red-700">${s ?? '-'}</span>
+                    const canClick = i === activeIdx && !p.isBot && s === undefined && left < 3;
+                    return `<div class="score-row ${canClick ? 'clickable' : ''} ${s!==undefined?'filled':''}" onclick="chooseCat('${c.id}', ${i})">
+                        <span>${c.n}</span><span class="font-bold text-red-700">${s ?? '-'}</span>
                     </div>`;
                 }).join('');
-                card.innerHTML = `<div class="flex justify-between border-b border-red-900 pb-1 mb-2"><b>${p.name}</b><b class="text-xl">${p.total}</b></div>${rows}`;
+                card.innerHTML = `<div class="flex justify-between border-b border-red-900 pb-1 mb-1"><b>${p.name}</b><b class="text-xl">${p.total}</b></div>${rows}`;
                 container.appendChild(card);
             });
 
-            const activePlayer = players[currentPlayerIdx];
-            const isMe = gameMode === 'local' ? !activePlayer.isBot : activePlayer.id === socket.id;
+            const current = players[activeIdx];
+            const isMe = mode === 'local' ? !current.isBot : current.id === socket.id;
             
-            document.getElementById('status-msg').innerText = isMe ? "DEIN ZUG" : `${activePlayer.name.toUpperCase()} IST DRAN`;
-            document.getElementById('roll-btn').disabled = !isMe || rollsLeft <= 0 || isRolling;
-            document.getElementById('rolls-left-display').innerText = rollsLeft;
-            
+            document.getElementById('turn-banner').innerText = isMe ? "DEIN OPFER" : `${current.name.toUpperCase()} WÜRFELT...`;
+            document.getElementById('roll-action').disabled = !isMe || left <= 0 || rolling;
+            document.getElementById('rolls-left-ui').innerText = left;
+
             const dieEls = document.querySelectorAll('.die');
-            dice.forEach((d, i) => {
-                dieEls[i].innerText = d || "?";
+            dice.forEach((val, i) => {
+                dieEls[i].innerText = val || "?";
                 dieEls[i].classList.toggle('held', held[i]);
             });
 
-            if (activePlayer.isBot && gameMode === 'local' && !isRolling) setTimeout(botStep, 1000);
-            
-            const activeCard = document.getElementById(`card-${currentPlayerIdx}`);
+            if(isMe && left === 0) document.getElementById('turn-banner').innerText = "WÄHLE EINE KATEGORIE!";
+            if(current.isBot && mode === 'local' && !rolling) setTimeout(botBrain, 1000);
+
+            const activeCard = document.getElementById(`card-${activeIdx}`);
             if (activeCard) activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
 
-        async function handleRoll() {
-            if (isRolling || rollsLeft <= 0) return;
-            isRolling = true;
-            rollsLeft--;
+        async function doRoll() {
+            if(rolling || left <= 0) return;
+            rolling = true;
+            left--;
             
-            const els = document.querySelectorAll('.die');
-            els.forEach((e, i) => !held[i] && e.classList.add('rolling'));
+            const dieEls = document.querySelectorAll('.die');
+            dieEls.forEach((el, i) => !held[i] && el.classList.add('rolling'));
             
-            if (gameMode === 'online') sync();
-
             await new Promise(r => setTimeout(r, 600));
-            dice = dice.map((d, i) => held[i] ? d : Math.floor(Math.random()*6)+1);
-            isRolling = false;
             
-            sync();
-            refreshUI();
-        }
-
-        function handleDieClick(i) {
-            const activePlayer = players[currentPlayerIdx];
-            const isMe = gameMode === 'local' ? !activePlayer.isBot : activePlayer.id === socket.id;
-            if (!isMe || rollsLeft === 3 || isRolling) return;
-            held[i] = !held[i];
-            sync();
-            refreshUI();
-        }
-
-        function selectCat(catId, pIdx) {
-            const activePlayer = players[currentPlayerIdx];
-            const isMe = gameMode === 'local' ? !activePlayer.isBot : activePlayer.id === socket.id;
-            if (!isMe || rollsLeft === 3 || players[pIdx].scores[catId] !== undefined) return;
-
-            const score = calcScore(catId, dice);
-            players[pIdx].scores[catId] = score;
+            dice = dice.map((v, i) => held[i] ? v : Math.floor(Math.random()*6)+1);
+            rolling = false;
             
-            // Punktzahl berechnen
-            let up = 0; ["1","2","3","4","5","6"].forEach(id => up += (players[pIdx].scores[id] || 0));
-            let tot = Object.values(players[pIdx].scores).reduce((a,b)=>a+b, 0);
-            players[pIdx].total = tot + (up >= 63 ? 35 : 0);
-
-            currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
-            rollsLeft = 3; dice = [0,0,0,0,0]; held = [false,false,false,false,false];
-            
-            sync();
-            refreshUI();
-        }
-
-        function sync() {
-            if (gameMode === 'online') {
-                socket.emit('sync-action', { roomId, gameState: { players, currentPlayerIdx, dice, rollsLeft, held } });
+            if(mode === 'online') {
+                socket.emit('sync-action', { roomId: currentRoom, gameState: { players, currentPlayerIdx: activeIdx, dice, rollsLeft: left, held } });
+            } else {
+                render();
             }
         }
 
-        function calcScore(id, d) {
+        function toggleHold(i) {
+            const current = players[activeIdx];
+            const isMe = mode === 'local' ? !current.isBot : current.id === socket.id;
+            if(!isMe || left === 3 || left === 0 || rolling) return;
+            
+            held[i] = !held[i];
+            if(mode === 'online') {
+                socket.emit('sync-action', { roomId: currentRoom, gameState: { held } });
+            } else {
+                render();
+            }
+        }
+
+        function chooseCat(catId, pIdx) {
+            const current = players[activeIdx];
+            const isMe = mode === 'local' ? !current.isBot : current.id === socket.id;
+            if(!isMe || pIdx !== activeIdx || left === 3 || current.scores[catId] !== undefined) return;
+
+            const score = calculate(catId, dice);
+            players[pIdx].scores[catId] = score;
+            
+            // Re-calc total
+            let upper = 0; ["1","2","3","4","5","6"].forEach(id => upper += (players[pIdx].scores[id] || 0));
+            let sum = Object.values(players[pIdx].scores).reduce((a,b)=>a+b, 0);
+            players[pIdx].total = sum + (upper >= 63 ? 35 : 0);
+
+            // Reset for next
+            activeIdx = (activeIdx + 1) % players.length;
+            left = 3; dice = [0,0,0,0,0]; held = [false,false,false,false,false];
+            
+            if(mode === 'online') {
+                socket.emit('sync-action', { roomId: currentRoom, gameState: { players, currentPlayerIdx: activeIdx, dice, rollsLeft: 3, held } });
+            } else {
+                render();
+            }
+        }
+
+        function calculate(id, d) {
             const counts = d.reduce((a,v)=>{a[v]=(a[v]||0)+1; return a;}, {});
             const sum = d.reduce((a,b)=>a+b, 0);
             const vals = Object.values(counts);
             const unique = [...new Set(d)].sort();
-            if (parseInt(id)) return (counts[id] || 0) * parseInt(id);
-            if (id === "kn") return vals.some(v => v >= 5) ? 50 : 0;
-            if (id === "ch") return sum;
-            if (id === "fh") return (vals.includes(2) && vals.includes(3)) || vals.includes(5) ? 25 : 0;
-            if (id === "ks") return /1234|2345|3456/.test(unique.join('')) ? 30 : 0;
-            if (id === "gs") return unique.length === 5 && (unique[4]-unique[0] === 4) ? 40 : 0;
-            if (id === "3k") return vals.some(v => v >= 3) ? sum : 0;
-            if (id === "4k") return vals.some(v => v >= 4) ? sum : 0;
+            if(parseInt(id)) return (counts[id] || 0) * parseInt(id);
+            if(id === "kn") return vals.some(v => v >= 5) ? 50 : 0;
+            if(id === "ch") return sum;
+            if(id === "fh") return (vals.includes(2) && vals.includes(3)) || vals.includes(5) ? 25 : 0;
+            if(id === "ks") return /1234|2345|3456/.test(unique.join('')) ? 30 : 0;
+            if(id === "gs") return unique.length === 5 && (unique[4]-unique[0] === 4) ? 40 : 0;
+            if(id === "3k") return vals.some(v => v >= 3) ? sum : 0;
+            if(id === "4k") return vals.some(v => v >= 4) ? sum : 0;
             return 0;
         }
 
-        async function botStep() {
-            if (rollsLeft > 0) await handleRoll();
+        async function botBrain() {
+            if(left > 0) await doRoll();
             else {
-                const p = players[currentPlayerIdx];
-                const cat = CATEGORIES.find(c => p.scores[c.id] === undefined);
-                selectCat(cat.id, currentPlayerIdx);
+                const p = players[activeIdx];
+                const cat = CATS.find(c => p.scores[c.id] === undefined);
+                chooseCat(cat.id, activeIdx);
             }
         }
     </script>
