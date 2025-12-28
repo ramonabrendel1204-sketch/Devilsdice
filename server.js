@@ -20,7 +20,7 @@ function calculateScore(id, dice) {
     if (parseInt(id)) return (counts[id] || 0) * parseInt(id);
     if (id === "kn") return vals.some(v => v >= 5) ? 50 : 0;
     if (id === "ch") return sum;
-    if (id === "fh") return (vals.includes(2) && vals.includes(3)) || vals.includes(5) ? 25 : 0;
+    if (id === "fh") return (vals.includes(2) && vals.includes(3)) || (vals.includes(5)) ? 25 : 0;
     if (id === "ks") return /1234|2345|3456/.test(unique.join('')) ? 30 : 0;
     if (id === "gs") return unique.length === 5 && (unique[4] - unique[0] === 4) ? 40 : 0;
     if (id === "3k") return vals.some(v => v >= 3) ? sum : 0;
@@ -44,21 +44,24 @@ io.on('connection', (socket) => {
         }
         
         const room = rooms[rId];
-        // Spieler nur hinzufügen, wenn das Spiel noch nicht läuft
         if (!room.gameStarted) {
             const playerExists = room.players.find(p => p.id === socket.id);
             if (!playerExists) {
                 room.players.push({ id: socket.id, name: playerName, scores: {}, total: 0 });
             }
-            // Broadcast an ALLE im Raum (inklusive des neuen Spielers)
             io.to(rId).emit('update-players', room.players);
         }
     });
 
     socket.on('start-game', (roomId) => {
         const rId = roomId.toUpperCase();
-        if (rooms[rId] && rooms[rId].players.length > 0) {
+        if (rooms[rId]) {
             rooms[rId].gameStarted = true;
+            rooms[rId].currentPlayerIdx = 0;
+            rooms[rId].dice = [0, 0, 0, 0, 0];
+            rooms[rId].rollsLeft = 3;
+            // Reset scores for all players if restarting
+            rooms[rId].players.forEach(p => { p.scores = {}; p.total = 0; });
             io.to(rId).emit('game-started', rooms[rId]);
         }
     });
@@ -97,12 +100,16 @@ io.on('connection', (socket) => {
         for (const rId of socket.rooms) {
             if (rooms[rId]) {
                 rooms[rId].players = rooms[rId].players.filter(p => p.id !== socket.id);
-                io.to(rId).emit('update-players', rooms[rId].players);
+                if (rooms[rId].players.length === 0) {
+                    delete rooms[rId];
+                } else {
+                    io.to(rId).emit('update-players', rooms[rId].players);
+                }
             }
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Dämonen lauschen auf Port ${PORT}`));
+server.listen(PORT, () => console.log(`Altar aktiv auf Port ${PORT}`));
 
