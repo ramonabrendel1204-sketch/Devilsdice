@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Devil's Circle - Multiplayer</title>
+    <title>The Devil's Circle - Ritual & Regeln</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&display=swap" rel="stylesheet">
     <style>
-        :root { --blood-red: #8a0303; --dark-void: #0a0a0a; }
-        body { background-color: var(--dark-void); color: #e3dac9; font-family: 'Special Elite', cursive; background-image: radial-gradient(circle, #1a0505 0%, #0a0a0a 100%); min-height: 100vh; overflow-x: hidden; }
+        :root { --blood-red: #8a0303; --dark-void: #0a0a0a; --gold: #c5a059; }
+        body { background-color: var(--dark-void); color: #e3dac9; font-family: 'Special Elite', cursive; background-image: radial-gradient(circle, #1a0505 0%, #0a0a0a 100%); min-height: 100vh; }
         .horror-title { font-family: 'Creepster', cursive; color: var(--blood-red); text-shadow: 0 0 10px rgba(138,3,3,0.7); }
         .die { width: 50px; height: 50px; background: #111; border: 2px solid #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--blood-red); cursor: pointer; transition: transform 0.1s; }
         .die.held { border-color: #00ff44; color: #00ff44; box-shadow: 0 0 10px rgba(0,255,68,0.3); transform: translateY(-3px); }
@@ -21,9 +21,21 @@
         .score-row.filled { color: #555; pointer-events: none; }
         .btn-blood { background: #600; color: white; padding: 10px 20px; border-radius: 4px; font-family: 'Creepster', cursive; font-size: 1.2rem; border: 1px solid #900; }
         .btn-blood:disabled { opacity: 0.2; cursor: not-allowed; }
+        .rules-section { border-top: 2px solid var(--blood-red); background: rgba(0,0,0,0.9); padding: 2rem 1rem; margin-top: 2rem; }
+        .rule-item { margin-bottom: 1rem; border-left: 2px solid #444; padding-left: 10px; }
+        .rule-name { color: var(--gold); font-weight: bold; font-size: 0.9rem; }
+        #winner-overlay { background: rgba(0,0,0,0.95); z-index: 1000; display: none; }
     </style>
 </head>
 <body class="p-2 select-none">
+
+    <!-- Winner Overlay -->
+    <div id="winner-overlay" class="fixed inset-0 flex flex-col items-center justify-center p-6 text-center">
+        <h1 class="horror-title text-6xl mb-4">DAS RITUAL ENDET</h1>
+        <div id="winner-text" class="text-2xl text-gold mb-8"></div>
+        <div id="final-scores" class="mb-8 text-gray-400 space-y-2"></div>
+        <button onclick="requestStart()" class="btn-blood px-12 py-4 text-2xl">ERNEUT BESCHWÖREN</button>
+    </div>
 
     <div id="setup-screen" class="fixed inset-0 flex items-center justify-center p-4 z-[100] bg-black">
         <div class="max-w-md w-full bg-zinc-950 border border-red-900 p-8 rounded-lg">
@@ -31,7 +43,7 @@
             <input type="text" id="player-name" placeholder="Dein Name" class="w-full bg-black border border-red-900 p-3 text-white mb-4">
             
             <div id="lobby-controls" class="space-y-4">
-                <input type="text" id="room-id" placeholder="RAUM CODE (z.B. HELL)" class="w-full bg-black border border-red-900 p-3 text-white uppercase">
+                <input type="text" id="room-id" placeholder="RAUM CODE" class="w-full bg-black border border-red-900 p-3 text-white uppercase">
                 <button onclick="joinOnline()" class="btn-blood w-full">RAUM BETRETEN</button>
                 
                 <div id="waiting-area" class="hidden border-t border-red-900 pt-4 mt-4">
@@ -44,10 +56,10 @@
     </div>
 
     <div id="game-ui" class="hidden max-w-lg mx-auto">
-        <h1 class="horror-title text-2xl text-center my-4">THE DEVIL'S CIRCLE</h1>
+        <h1 class="horror-title text-3xl text-center my-4">THE DEVIL'S CIRCLE</h1>
         <div id="turn-info" class="text-center text-red-600 text-[10px] mb-2 h-4 uppercase tracking-widest"></div>
         
-        <div class="bg-black/80 border border-red-950 rounded-2xl p-4 mb-4">
+        <div class="bg-black/80 border border-red-950 rounded-2xl p-4 mb-4 shadow-2xl">
             <div class="flex justify-center gap-2 mb-6">
                 <div class="die" onclick="toggleHold(0)">?</div>
                 <div class="die" onclick="toggleHold(1)">?</div>
@@ -63,7 +75,45 @@
                 </div>
             </div>
         </div>
+        
         <div id="cards-container" class="cards-slider"></div>
+
+        <div class="rules-section rounded-t-3xl shadow-[0_-10px_30px_rgba(138,3,3,0.2)]">
+            <h2 class="horror-title text-2xl mb-6 text-center italic">Das Grimoire der Regeln</h2>
+            
+            <div class="grid gap-4">
+                <div class="rule-item">
+                    <div class="rule-name">Asche bis Sünden (1-6)</div>
+                    <p class="text-[10px] text-gray-400">Sammle so viele gleiche Würfel wie möglich. (z.B. drei 4er = 12 Punkte Blut).</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-name">Der Bonus (Ab 63 Pkt.)</div>
+                    <p class="text-[10px] text-gray-400">Erreichst du im oberen Teil 63 Punkte oder mehr, erhältst du 35 Bonuspunkte.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-name">Dreier-Schrei / Vierer-Qual</div>
+                    <p class="text-[10px] text-gray-400">Mindestens 3 oder 4 gleiche Würfel. Alle Augen zählen als Summe.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-name">Hexenzirkel (Full House)</div>
+                    <p class="text-[10px] text-gray-400">Drei gleiche und zwei gleiche Würfel. Wert: 25 Festpunkte.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-name">Kl. Treppe / Gr. Treppe</div>
+                    <p class="text-[10px] text-gray-400">Kleine: 4 aufeinanderfolgende Zahlen (30 Pkt). Große: 5 Zahlen (40 Pkt).</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-name">DER TEUFEL (Kniffel)</div>
+                    <p class="text-[10px] text-gray-400">Fünf gleiche Würfel. Wert: 50 Festpunkte.</p>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-name">Schicksal (Chance)</div>
+                    <p class="text-[10px] text-gray-400">Einfach die Summe aller Würfel, egal welche Kombination.</p>
+                </div>
+            </div>
+            
+            <div class="text-center mt-8 opacity-20 text-[8px] uppercase tracking-[0.5em]">Memento Mori</div>
+        </div>
     </div>
 
     <script>
@@ -90,11 +140,11 @@
         socket.on('update-players', p => {
             players = p;
             document.getElementById('player-list-display').innerText = p.map(x => x.name).join(' • ');
-            // Button nur aktivieren wenn min. 1 Spieler da ist (oder 2 für echtes Multiplayer)
             document.getElementById('start-btn').disabled = p.length < 1;
         });
 
         function requestStart() {
+            document.getElementById('winner-overlay').style.display = 'none';
             socket.emit('start-game', roomId);
         }
 
@@ -106,10 +156,14 @@
             activeIdx = data.currentPlayerIdx;
             dice = data.dice;
             left = data.rollsLeft;
+            held = [false,false,false,false,false]; // Sync reset held state
+            
             if(first) {
                 document.getElementById('setup-screen').classList.add('hidden');
                 document.getElementById('game-ui').classList.remove('hidden');
             }
+            
+            checkGameOver();
             render();
         }
 
@@ -130,7 +184,24 @@
         function chooseCat(catId) {
             if(left === 3) return;
             socket.emit('select-category', { roomId, catId });
-            held = [false,false,false,false,false]; // Reset local held state
+        }
+
+        function checkGameOver() {
+            const allFinished = players.every(p => Object.keys(p.scores).length === CATS.length);
+            if(allFinished && players.length > 0) {
+                const overlay = document.getElementById('winner-overlay');
+                const winnerText = document.getElementById('winner-text');
+                const scoreDisplay = document.getElementById('final-scores');
+                
+                // Sort by total score descending
+                const sorted = [...players].sort((a,b) => b.total - a.total);
+                const winner = sorted[0];
+                
+                winnerText.innerText = `${winner.name} hat das Ritual dominiert!`;
+                scoreDisplay.innerHTML = sorted.map(p => `<div>${p.name}: ${p.total} Pkt.</div>`).join('');
+                
+                overlay.style.display = 'flex';
+            }
         }
 
         function render() {
@@ -166,7 +237,6 @@
                 dieEls[i].classList.toggle('held', held[i]);
             });
 
-            // Auto-Scroll zum aktiven Spieler
             const activeCard = container.children[activeIdx];
             if(activeCard) activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
