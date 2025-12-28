@@ -12,34 +12,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 let rooms = {};
 
 io.on('connection', (socket) => {
-    console.log('Eine Seele hat sich verbunden:', socket.id);
-
-    socket.on('join-room', ({ roomId, playerName, isBotCount }) => {
+    socket.on('join-room', ({ roomId, playerName }) => {
         socket.join(roomId);
         if (!rooms[roomId]) {
             rooms[roomId] = {
                 players: [],
                 gameStarted: false,
-                round: 1,
-                currentPlayerIdx: 0
+                currentPlayerIdx: 0,
+                dice: [0, 0, 0, 0, 0],
+                rollsLeft: 3,
+                held: [false, false, false, false, false]
             };
         }
 
         const room = rooms[roomId];
-        if (room.gameStarted) {
-            socket.emit('error-msg', 'Das Ritual hat bereits begonnen.');
-            return;
+        if (!room.gameStarted) {
+            room.players.push({
+                id: socket.id,
+                name: playerName,
+                scores: {},
+                total: 0
+            });
+            io.to(roomId).emit('update-players', room.players);
         }
-
-        room.players.push({
-            id: socket.id,
-            name: playerName,
-            isBot: false,
-            scores: {},
-            total: 0
-        });
-
-        io.to(roomId).emit('update-players', room.players);
     });
 
     socket.on('start-game', (roomId) => {
@@ -49,20 +44,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('sync-game-state', ({ roomId, gameState }) => {
+    // Synchronisiert JEDE Aktion (Würfeln, Halten, Eintragen)
+    socket.on('sync-action', ({ roomId, gameState }) => {
         if (rooms[roomId]) {
-            rooms[roomId] = gameState;
-            socket.to(roomId).emit('game-state-updated', gameState);
+            rooms[roomId] = { ...rooms[roomId], ...gameState };
+            // Sende an alle anderen im Raum
+            socket.to(roomId).emit('game-state-updated', rooms[roomId]);
         }
     });
 
     socket.on('disconnect', () => {
-        console.log('Eine Seele ist entkommen.');
+        // Logik für Spieler verlassen könnte hier erweitert werden
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Der Altar ist bereit auf Port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server läuft auf Port ${PORT}`));
 
