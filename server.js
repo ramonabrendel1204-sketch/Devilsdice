@@ -17,14 +17,33 @@ function calculateScore(id, dice) {
     const vals = Object.values(counts);
     const unique = [...new Set(dice)].sort();
 
+    // Zahlenfelder 1-6
     if (parseInt(id)) return (counts[id] || 0) * parseInt(id);
+    
+    // DER TEUFEL (5 Gleiche)
     if (id === "kn") return vals.some(v => v >= 5) ? 50 : 0;
+    
+    // Schicksal (Chance)
     if (id === "ch") return sum;
+    
+    // Hexenzirkel (Full House)
     if (id === "fh") return (vals.includes(2) && vals.includes(3)) || (vals.includes(5)) ? 25 : 0;
-    if (id === "ks") return /1234|2345|3456/.test(unique.join('')) ? 30 : 0;
+    
+    // Kleine Treppe
+    if (id === "ks") {
+        const s = unique.join('');
+        return /1234|2345|3456/.test(s) ? 30 : 0;
+    }
+    
+    // Große Treppe
     if (id === "gs") return unique.length === 5 && (unique[4] - unique[0] === 4) ? 40 : 0;
+    
+    // Dreier-Schrei (3 gleiche Würfel -> Summe aller Würfel)
     if (id === "3k") return vals.some(v => v >= 3) ? sum : 0;
+    
+    // Vierer-Qual (4 gleiche Würfel -> Summe aller Würfel)
     if (id === "4k") return vals.some(v => v >= 4) ? sum : 0;
+    
     return 0;
 }
 
@@ -60,7 +79,6 @@ io.on('connection', (socket) => {
             rooms[rId].currentPlayerIdx = 0;
             rooms[rId].dice = [0, 0, 0, 0, 0];
             rooms[rId].rollsLeft = 3;
-            // Reset scores for all players if restarting
             rooms[rId].players.forEach(p => { p.scores = {}; p.total = 0; });
             io.to(rId).emit('game-started', rooms[rId]);
         }
@@ -111,5 +129,5 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Altar aktiv auf Port ${PORT}`));
+server.listen(PORT, () => console.log(`Devil's Dice Server lauscht auf Port ${PORT}`));
 
