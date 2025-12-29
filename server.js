@@ -11,40 +11,51 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let rooms = {};
 
+// Korrigierte Punkteberechnung auf dem Server
 function calculateScore(id, dice) {
-    const counts = dice.reduce((a, v) => { a[v] = (a[v] || 0) + 1; return a; }, {});
+    if (!dice || dice.length === 0 || dice.includes(0)) return 0;
+
+    // Erstelle ein Map der Vorkommen jeder Zahl (1-6)
+    const counts = {};
+    dice.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+    
     const sum = dice.reduce((a, b) => a + b, 0);
     const vals = Object.values(counts);
-    const unique = [...new Set(dice)].sort();
+    const unique = [...new Set(dice)].sort((a, b) => a - b);
 
     // Zahlenfelder 1-6
-    if (parseInt(id)) return (counts[id] || 0) * parseInt(id);
-    
-    // DER TEUFEL (5 Gleiche)
-    if (id === "kn") return vals.some(v => v >= 5) ? 50 : 0;
-    
-    // Schicksal (Chance)
-    if (id === "ch") return sum;
-    
-    // Hexenzirkel (Full House)
-    if (id === "fh") return (vals.includes(2) && vals.includes(3)) || (vals.includes(5)) ? 25 : 0;
-    
-    // Kleine Treppe
-    if (id === "ks") {
-        const s = unique.join('');
-        return /1234|2345|3456/.test(s) ? 30 : 0;
+    if (!isNaN(id)) {
+        const numId = parseInt(id);
+        return (counts[numId] || 0) * numId;
     }
     
-    // Große Treppe
-    if (id === "gs") return unique.length === 5 && (unique[4] - unique[0] === 4) ? 40 : 0;
-    
-    // Dreier-Schrei (3 gleiche Würfel -> Summe aller Würfel)
-    if (id === "3k") return vals.some(v => v >= 3) ? sum : 0;
-    
-    // Vierer-Qual (4 gleiche Würfel -> Summe aller Würfel)
-    if (id === "4k") return vals.some(v => v >= 4) ? sum : 0;
-    
-    return 0;
+    // Spezial-Kategorien
+    switch(id) {
+        case "kn": // DER TEUFEL (5 Gleiche)
+            return vals.some(v => v >= 5) ? 50 : 0;
+            
+        case "ch": // Schicksal (Chance)
+            return sum;
+            
+        case "fh": // Hexenzirkel (Full House: 3 gleiche + 2 gleiche)
+            return (vals.includes(2) && vals.includes(3)) || vals.includes(5) ? 25 : 0;
+            
+        case "ks": // Kleine Treppe (4 aufeinanderfolgende)
+            const s = unique.join('');
+            return /1234|2345|3456/.test(s) || /1234/.test(s) || /2345/.test(s) || /3456/.test(s) ? 30 : 0;
+            
+        case "gs": // Große Treppe (5 aufeinanderfolgende)
+            return unique.length === 5 && (unique[4] - unique[0] === 4) ? 40 : 0;
+            
+        case "3k": // Dreier-Schrei (Mindestens 3 gleiche -> Summe aller Würfel)
+            return vals.some(count => count >= 3) ? sum : 0;
+            
+        case "4k": // Vierer-Qual (Mindestens 4 gleiche -> Summe aller Würfel)
+            return vals.some(count => count >= 4) ? sum : 0;
+            
+        default:
+            return 0;
+    }
 }
 
 io.on('connection', (socket) => {
@@ -101,11 +112,13 @@ io.on('connection', (socket) => {
             const score = calculateScore(catId, room.dice);
             player.scores[catId] = score;
 
+            // Punktzahl-Updates
             let upper = 0;
             ["1", "2", "3", "4", "5", "6"].forEach(id => upper += (player.scores[id] || 0));
             let total = Object.values(player.scores).reduce((a, b) => a + b, 0);
             player.total = total + (upper >= 63 ? 35 : 0);
 
+            // Wechsel zum nächsten Spieler
             room.currentPlayerIdx = (room.currentPlayerIdx + 1) % room.players.length;
             room.rollsLeft = 3;
             room.dice = [0, 0, 0, 0, 0];
@@ -129,5 +142,5 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Devil's Dice Server lauscht auf Port ${PORT}`));
+server.listen(PORT, () => console.log(`Devil's Dice Server online.`));
 
