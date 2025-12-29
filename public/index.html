@@ -12,7 +12,7 @@
         body { background-color: var(--dark-void); color: #e3dac9; font-family: 'Special Elite', cursive; background-image: radial-gradient(circle, #1a0505 0%, #0a0a0a 100%); min-height: 100vh; }
         .horror-title { font-family: 'Creepster', cursive; color: var(--blood-red); text-shadow: 0 0 10px rgba(138,3,3,0.7); }
         .nosifer { font-family: 'Nosifer', cursive; }
-        .die { width: 50px; height: 50px; background: #111; border: 2px solid #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--blood-red); cursor: pointer; transition: transform 0.1s; }
+        .die { width: 50px; height: 50px; background: #111; border: 2px solid #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--blood-red); cursor: pointer; }
         .die.held { border-color: #00ff44; color: #00ff44; box-shadow: 0 0 10px rgba(0,255,68,0.3); transform: translateY(-3px); }
         .cards-slider { display: flex; overflow-x: auto; gap: 1rem; padding: 15px; scrollbar-width: none; scroll-snap-type: x mandatory; }
         .score-card { flex: 0 0 85%; scroll-snap-align: center; background: rgba(0,0,0,0.85); border: 1px solid #222; border-radius: 12px; padding: 12px; }
@@ -26,7 +26,7 @@
         .rule-item { margin-bottom: 1rem; border-left: 2px solid #444; padding-left: 10px; }
         .rule-name { color: var(--gold); font-weight: bold; font-size: 0.9rem; }
         #winner-overlay { background: rgba(0,0,0,0.95); z-index: 1000; display: none; }
-        .branding-text { color: var(--blood-red); font-size: 0.6rem; letter-spacing: 0.1rem; opacity: 0.8; }
+        .branding-text { color: var(--blood-red); letter-spacing: 0.1rem; opacity: 0.8; }
     </style>
 </head>
 <body class="p-2 select-none">
@@ -42,7 +42,7 @@
     <div id="setup-screen" class="fixed inset-0 flex items-center justify-center p-4 z-[100] bg-black">
         <div class="max-w-md w-full bg-zinc-950 border border-red-900 p-8 rounded-lg">
             <h1 class="nosifer text-3xl text-red-700 text-center mb-2">DEVIL'S DICE</h1>
-            <p class="branding-text text-center mb-6">PRESENTED BY R & D HIRSCHER ENTERTAINMENT</p>
+            <p class="branding-text text-center mb-6 text-[10px]">PRESENTED BY R & D HIRSCHER ENTERTAINMENT</p>
             <input type="text" id="player-name" placeholder="Dein Name" class="w-full bg-black border border-red-900 p-3 text-white mb-4">
             
             <div id="lobby-controls" class="space-y-4">
@@ -87,34 +87,13 @@
 
         <div class="rules-section rounded-t-3xl shadow-[0_-10px_30px_rgba(138,3,3,0.3)]">
             <h2 class="horror-title text-2xl mb-6 text-center italic">Das Grimoire der Regeln</h2>
-            
             <div class="grid gap-4">
-                <div class="rule-item">
-                    <div class="rule-name">Asche bis Sünden (1-6)</div>
-                    <p class="text-[10px] text-gray-400">Sammle so viele gleiche Würfel wie möglich.</p>
-                </div>
-                <div class="rule-item">
-                    <div class="rule-name">Der Bonus (Ab 63 Pkt.)</div>
-                    <p class="text-[10px] text-gray-400">Erreichst du im oberen Teil 63 Punkte oder mehr, erhältst du 35 Bonuspunkte.</p>
-                </div>
-                <div class="rule-item">
-                    <div class="rule-name">Dreier-Schrei / Vierer-Qual</div>
-                    <p class="text-[10px] text-gray-400">Mindestens 3 oder 4 gleiche Würfel nötig. Die Summe ALLER Augen wird gutgeschrieben.</p>
-                </div>
-                <div class="rule-item">
-                    <div class="rule-name">Hexenzirkel (Full House)</div>
-                    <p class="text-[10px] text-gray-400">Drei gleiche und zwei gleiche Würfel. Wert: 25 Festpunkte.</p>
-                </div>
-                <div class="rule-item">
-                    <div class="rule-name">Treppen</div>
-                    <p class="text-[10px] text-gray-400">Kleine (4er Folge): 30 Pkt. Große (5er Folge): 40 Pkt.</p>
-                </div>
-                <div class="rule-item">
-                    <div class="rule-name">DER TEUFEL</div>
-                    <p class="text-[10px] text-gray-400">Fünf gleiche Würfel. Wert: 50 Festpunkte.</p>
-                </div>
+                <div class="rule-item"><div class="rule-name">Asche bis Sünden (1-6)</div><p class="text-[10px] text-gray-400">Summe aller Würfel der entsprechenden Zahl.</p></div>
+                <div class="rule-item"><div class="rule-name">Dreier-Schrei / Vierer-Qual</div><p class="text-[10px] text-gray-400">Mind. 3 bzw. 4 gleiche Zahlen. Du erhältst die Summe ALLER 5 Würfel.</p></div>
+                <div class="rule-item"><div class="rule-name">Hexenzirkel (Full House)</div><p class="text-[10px] text-gray-400">Drei gleiche und zwei gleiche Zahlen. (25 Pkt.)</p></div>
+                <div class="rule-item"><div class="rule-name">Treppen</div><p class="text-[10px] text-gray-400">Folgen von 4 (30 Pkt.) oder 5 Zahlen (40 Pkt.).</p></div>
+                <div class="rule-item"><div class="rule-name">DER TEUFEL</div><p class="text-[10px] text-gray-400">Fünf gleiche Zahlen. (50 Pkt.)</p></div>
             </div>
-            
             <div class="text-center mt-12 opacity-30 branding-text text-[6px]">© R & D Hirscher Entertainment</div>
         </div>
     </div>
@@ -160,12 +139,10 @@
             dice = data.dice;
             left = data.rollsLeft;
             held = [false,false,false,false,false]; 
-            
             if(first) {
                 document.getElementById('setup-screen').classList.add('hidden');
                 document.getElementById('game-ui').classList.remove('hidden');
             }
-            
             checkGameOver();
             render();
         }
@@ -194,14 +171,9 @@
             const allFinished = players.every(p => Object.keys(p.scores).length === CATS.length);
             if(allFinished) {
                 const overlay = document.getElementById('winner-overlay');
-                const winnerText = document.getElementById('winner-text');
-                const scoreDisplay = document.getElementById('final-scores');
-                
                 const sorted = [...players].sort((a,b) => b.total - a.total);
-                const winner = sorted[0];
-                
-                winnerText.innerText = `${winner.name} hat das Ritual gewonnen!`;
-                scoreDisplay.innerHTML = sorted.map(p => `<div>${p.name}: ${p.total} Pkt.</div>`).join('');
+                document.getElementById('winner-text').innerText = `${sorted[0].name} hat gesiegt!`;
+                document.getElementById('final-scores').innerHTML = sorted.map(p => `<div>${p.name}: ${p.total} Pkt.</div>`).join('');
                 overlay.style.display = 'flex';
             }
         }
@@ -224,21 +196,16 @@
                 card.innerHTML = `<div class="flex justify-between border-b border-red-900 pb-1 mb-1"><b>${p.name}</b><b>${p.total}</b></div>${rows}`;
                 container.appendChild(card);
             });
-
             const current = players[activeIdx];
             if(!current) return;
-
-            const isMe = current.id === socket.id;
-            document.getElementById('turn-info').innerText = isMe ? "Du bist am Zug" : `${current.name} ist am Zug`;
-            document.getElementById('roll-btn').disabled = !isMe || left <= 0;
+            document.getElementById('turn-info').innerText = current.id === socket.id ? "Du bist am Zug" : `${current.name} ist am Zug`;
+            document.getElementById('roll-btn').disabled = current.id !== socket.id || left <= 0;
             document.getElementById('rolls-left-ui').innerText = left;
-
             const dieEls = document.querySelectorAll('.die');
             dice.forEach((v, i) => {
                 dieEls[i].innerText = v || "?";
                 dieEls[i].classList.toggle('held', held[i]);
             });
-
             const activeCard = container.children[activeIdx];
             if(activeCard) activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
